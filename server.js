@@ -1,5 +1,6 @@
-//import { ObjectID } from '../../../../../../../home/omi/.cache/typescript/2.6/node_modules/@types/bson';
 
+
+const _ = require("lodash");
 const {ObjectID=ObjectId} = require('mongodb');
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -13,6 +14,7 @@ const port = process.env.PORT || 3000
 
 app.use(bodyParser.json());
 app.post("/todos",(req,res)=>{
+
     new Todo({
         task:req.body.task,
     }).save().then(doc=>{
@@ -38,7 +40,10 @@ app.get("/todos/:id",(req,res)=>{
     }
     else{
         Todo.findById(id).then(doc=>{
-            res.send(doc);
+            if(!doc){
+                res.send([]);
+            }
+            else{res.send(doc);}
         }).catch(e=>res.status(400).send({e:"Some error was ocurred"}));
     }
 })
@@ -52,12 +57,38 @@ app.delete("/todos/:id",(req,res)=>{
     else{
         Todo.findByIdAndRemove(id).then(doc=>{
               if(!doc){
-                res.status(400).send({error:"Not Found"});
+                res.status(400).send({});
               }
               else{
                   res.send(doc);
               }
         }).catch(e=>res.status(400).send({error:"Some error was occured"}));
+    }
+});
+
+
+app.patch("/todos/:id",(req,res)=>{
+    const {id}= req.params;
+    if(!ObjectID.isValid(id)){
+        res.status(400).send({error:"Id is not valid"});
+    }
+    else{
+        //let body = _pick(req.body,['task','completed']);
+        let body = {...req.body};
+        if(typeof body.completed === "boolean" && body.completed && body.hasOwnProperty('completed')){
+           body.completedAt = new Date().getTime(); 
+        }
+        else{
+            body.completed = false;
+            body.completedAt = null;
+            // 
+        }
+        Todo.findByIdAndUpdate(id,{$set:body},{new:true}).then(doc=>{
+            if(!doc){
+                res.status(400).send({error:"Todo does not exist"})
+            }
+            else{res.send(doc);}
+        }).catch(e=>res.status(400).send({error:"Invalid Data Type"}));
     }
 });
 
