@@ -9,8 +9,9 @@ const app = express();
 const {Todo} = require("./model/Todo");
 const {User} = require("./model/User");
 
-app.use(bodyParser.json());
+const port = process.env.PORT || 3000
 
+app.use(bodyParser.json());
 app.post("/todos",(req,res)=>{
     new Todo({
         task:req.body.task,
@@ -42,4 +43,4 @@ app.get("/todos/:id",(req,res)=>{
     }
 })
 
-app.listen(3000);
+app.listen(port,()=>console.log("server Starting At",port));
