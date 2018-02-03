@@ -30,7 +30,7 @@ app.post("/todos",(req,res)=>{
 app.get("/todos",(req,res)=>{
     Todo.find().then(doc=>{
         res.send(doc);
-    }).catch(e=>res.send(e));
+    }).catch(e=>res.send({error:e._message}));
 });
 
 app.get("/todos/:id",(req,res)=>{
@@ -66,6 +66,26 @@ app.delete("/todos/:id",(req,res)=>{
     }
 });
 
+app.post("/users",(req,res)=>{
+    let body = {...req.body}
+    if(body.hasOwnProperty("email") && body.hasOwnProperty('password')){
+        const {email,password} = body;
+        if(typeof email === "string" && typeof password === "string"){
+            const user  = new User({email,password});
+            user.save().then(doc=>{
+                console.log("user saved");
+                return user.getToken();
+            }).then((token)=>res.header('x-auth',token).send(user))
+            .catch(e=>res.status(400).send({error:e._message ||"user exist" } ));
+        }
+        else{
+            res.status(400).send({error:"Please Enter Valid email and password"});
+        }
+    }
+    else{
+        res.status(400).send({error:"Invalid Request"});
+    }
+});
 
 app.patch("/todos/:id",(req,res)=>{
     const {id}= req.params;
