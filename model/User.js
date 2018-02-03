@@ -1,3 +1,5 @@
+//import { request } from 'https';
+
 //import { access } from 'fs';
 
 
@@ -22,7 +24,7 @@ const userSchema = new Mongoose.Schema({
         minlength:6,
         required:true
     },
-    tonkens:[{
+    tokens:[{
         access:{
             type:String,
             required:true
@@ -36,17 +38,32 @@ const userSchema = new Mongoose.Schema({
 userSchema.methods.toJSON = function(){
     const user = this;
     const userObj = user.toObject();
-    return {id:userObj._id,token:userObj.email};
+    return {id:userObj._id,email:userObj.email};
 }
 
 userSchema.methods.getToken = function() {
     const user = this
     const access = "auth";
     const token = jwt.sign({_id:user._id,access},'omkar2153').toString();
-    user.tonkens.push({access,token});
+    user.tokens.push({access,token});
     return user.save().then(()=>{
         return token;
     })
 }
+
+userSchema.statics.findByToken= function(token){
+    const user = this;
+    try{
+        const decode = jwt.verify(token,'omkar2153');
+        return user.findOne({
+            '_id':decode._id,
+            'tokens.token':token,
+            'tokens.access':decode.access
+        }); 
+    }
+    catch(e){
+        return Promise.reject("System Error");
+    }
+};
 const User = Mongoose.model('User',userSchema);
 exports.User = User;

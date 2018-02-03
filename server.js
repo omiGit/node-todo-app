@@ -4,6 +4,7 @@ const _ = require("lodash");
 const {ObjectID=ObjectId} = require('mongodb');
 const express = require("express");
 const bodyParser = require("body-parser");
+const {authentication} = require("./middlewears/authentication");
 const app = express();
 
 //const {Mongoose} = require('./db/mongoose');
@@ -14,11 +15,9 @@ const port = process.env.PORT || 3000
 
 app.use(bodyParser.json());
 app.post("/todos",(req,res)=>{
-
     new Todo({
         task:req.body.task,
     }).save().then(doc=>{
-        console.log(JSON.stringify(doc,undefined,2));
         res.send(doc);
     })
     .catch(e=>{
@@ -87,13 +86,17 @@ app.post("/users",(req,res)=>{
     }
 });
 
+
+app.get('/users/me',authentication,(req,res)=>{
+    return res.send(req.user);
+});
+
 app.patch("/todos/:id",(req,res)=>{
     const {id}= req.params;
     if(!ObjectID.isValid(id)){
         res.status(400).send({error:"Id is not valid"});
     }
     else{
-        //let body = _pick(req.body,['task','completed']);
         let body = {...req.body};
         if(typeof body.completed === "boolean" && body.completed && body.hasOwnProperty('completed')){
            body.completedAt = new Date().getTime(); 
@@ -101,7 +104,7 @@ app.patch("/todos/:id",(req,res)=>{
         else{
             body.completed = false;
             body.completedAt = null;
-            // 
+            
         }
         Todo.findByIdAndUpdate(id,{$set:body},{new:true}).then(doc=>{
             if(!doc){
