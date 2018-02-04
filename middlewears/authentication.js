@@ -5,7 +5,9 @@ const authentication = (req,res,next)=>{
         if(!user){
            return Promise.reject("Unauthorised Access");
         }
+        
         req.user = user;
+        req.token = token;
         next();
     }).catch((e)=>res.status(401).send({error:e}));
 }

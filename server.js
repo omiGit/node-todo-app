@@ -12,9 +12,10 @@ const {User} = require("./model/User");
 const port = process.env.PORT || 3000
 
 app.use(bodyParser.json());
-app.post("/todos",(req,res)=>{
+app.post("/todos",authentication,(req,res)=>{
     new Todo({
         task:req.body.task,
+        _creator: req.user._id
     }).save().then(doc=>{
         res.send(doc);
     })
@@ -23,20 +24,18 @@ app.post("/todos",(req,res)=>{
         res.status(400).send(e);
     });
 })
-
-app.get("/todos",(req,res)=>{
-    Todo.find().then(doc=>{
+app.get("/todos",authentication,(req,res)=>{
+    Todo.find({_creator:req.user._id}).then(doc=>{
         res.send(doc);
     }).catch(e=>res.send({error:e._message}));
 });
-
-app.get("/todos/:id",(req,res)=>{
+app.get("/todos/:id",authentication,(req,res)=>{
     const {id} = req.params;
     if(!ObjectID.isValid(id)){
         res.status(400).send({e:"Id is not valid"});
     }
     else{
-        Todo.findById(id).then(doc=>{
+        Todo.findOne({_id:id,_creator:req.user._id}).then(doc=>{
             if(!doc){
                 res.send([]);
             }
@@ -44,15 +43,13 @@ app.get("/todos/:id",(req,res)=>{
         }).catch(e=>res.status(400).send({e:"Some error was ocurred"}));
     }
 })
-
-
 app.delete("/todos/:id",(req,res)=>{
     const {id} = req.params;
     if(!ObjectID.isValid(id)){
         res.status(400).send({error:"Id is not valid"});
     }
     else{
-        Todo.findByIdAndRemove(id).then(doc=>{
+        Todo.findOneAndRemove({_id:id,_creator:req.user._id}).then(doc=>{
               if(!doc){
                 res.status(400).send({});
               }
@@ -62,7 +59,6 @@ app.delete("/todos/:id",(req,res)=>{
         }).catch(e=>res.status(400).send({error:"Some error was occured"}));
     }
 });
-
 const checkEmailPassword = ({email, password})=>{
     return typeof email === "string" && typeof password === "string" && email.length >= 6 && password.length >= 6 
 }
@@ -129,5 +125,11 @@ app.patch("/todos/:id",(req,res)=>{
         }).catch(e=>res.status(400).send({error:"Invalid Data Type"}));
     }
 });
+
+app.delete("/users/me/logout",authentication,(req,res)=>{
+    req.user.removeToken(req.token)
+    .then(()=>res.send())
+    .catch((e)=>res.status(400).send({error:e}));
+})
 
 app.listen(port,()=>console.log("server Starting At",port));

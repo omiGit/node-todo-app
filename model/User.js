@@ -94,7 +94,6 @@ userSchema.statics.findByToken= function(token){
         return Promise.reject("Invalid Request");
     }
 };
-
 userSchema.statics.validateEmailPassword = function({email,password}){
     const user = this;
     return user.findOne({email}).then(user=>{
@@ -113,7 +112,17 @@ userSchema.statics.validateEmailPassword = function({email,password}){
             return Promise.reject("Please enter valid username and password");
         }
     });
-    
 }
+
+userSchema.methods.removeToken = function(token){
+    const user = this;
+    return user.update({
+        $pull:{
+            tokens:{token}
+        }
+    });
+}
+
 const User = Mongoose.model('User',userSchema);
 exports.User = User;
+
