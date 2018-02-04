@@ -1,5 +1,3 @@
-
-
 const _ = require("lodash");
 const {ObjectID=ObjectId} = require('mongodb');
 const express = require("express");
@@ -65,17 +63,20 @@ app.delete("/todos/:id",(req,res)=>{
     }
 });
 
+const checkEmailPassword = ({email, password})=>{
+    return typeof email === "string" && typeof password === "string" && email.length >= 6 && password.length >= 6 
+}
+
 app.post("/users",(req,res)=>{
     let body = {...req.body}
     if(body.hasOwnProperty("email") && body.hasOwnProperty('password')){
         const {email,password} = body;
-        if(typeof email === "string" && typeof password === "string"){
+        if(body){
             const user  = new User({email,password});
             user.save().then(doc=>{
-                console.log("user saved");
                 return user.getToken();
             }).then((token)=>res.header('x-auth',token).send(user))
-            .catch(e=>res.status(400).send({error:e._message ||"user exist" } ));
+            .catch(e=>{console.log("error:",e);res.status(400).send({error:e._message ||"user exist" } )});
         }
         else{
             res.status(400).send({error:"Please Enter Valid email and password"});
@@ -91,6 +92,20 @@ app.get('/users/me',authentication,(req,res)=>{
     return res.send(req.user);
 });
 
+app.post('/users/login',(req,res)=>{
+    if(checkEmailPassword(req.body)){
+        User.validateEmailPassword(req.body).then((user)=>{
+             return user.getToken().then(token=>{
+                res.header('x-auth',token).send(user);
+            });
+        }).catch((e)=>{
+            res.status(401).send({error:e});
+        });
+    }
+    else{
+        res.status(401).send({error:"Please Enter Valid Email & Password"});
+    }
+});
 app.patch("/todos/:id",(req,res)=>{
     const {id}= req.params;
     if(!ObjectID.isValid(id)){
